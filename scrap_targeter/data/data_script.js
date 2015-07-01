@@ -99,37 +99,41 @@ function download(filename, text) {
   document.body.removeChild(element);
 }
 
-function export_data(){
-	var data_formatted = "{";
-	var target_template = "target_";
-
+function cleanup_empty_elements(added_list){
+	var new_list = [];
 	for(var i=0;i<added_list.length;i++){
-		if(added_list[i].attr("id") === undefined && added_list[i].attr("class")==="") continue;
-
-		data_formatted += "\""+target_template+i+"\":\"";
-
-		if(added_list[i].attr("class") !== ""){
-			
-			var classes = added_list[i].attr("class").replace(highlight_class,"").replace(highlight_class_added,"").split(/\s+/).filter(function(el) {return el.length != 0});;
-			
-			for(var j=0;j<classes.length;j++)
-				data_formatted += "."+classes[j]+" ";
+		added_list[i].removeClass(highlight_class+" "+highlight_class_added);
 		
-		}
-			
-		if(added_list[i].attr("id") !== undefined){
-			var ids = added_list[i].attr('id').replace(highlight_hover,"").split(/\s+/).filter(function(el) {return el.length != 0});;
-			
-			for(var j=0;j<ids.length;j++)
-				data_formatted += "#"+ids[j]+" ";
+		var element_target = "";
+		var has_class = added_list[i].attr("class")!=="";
+		var has_id = added_list[i].attr("id")!==undefined;
+		
+		if(added_list[i].attr("class")==="" && added_list[i].attr("id")===undefined)
+			element_target += added_list[i].prop("tagName");	
+		else{
+			if(has_class) element_target += "."+added_list[i].attr("class").split(/\s+/).join(", .");
+			if(has_class && has_id) element_target+=", ";
+			if(has_id) element_target += "#"+added_list[i].attr("id").split(/\s+/).join(", #");
 		}
 
-		if(i<added_list.length-1)
-			data_formatted+="\", ";
+		new_list.push(element_target);
+
+		added_list[i].addClass(highlight_class+" "+highlight_class_added);
 	}
+	
+	return new_list;
+}
 
-	data_formatted+="\"}";
-	download("export_targets.json", data_formatted);
+function export_data(){
+	var target_template = "target_"; // Key name
+	var data_formatted = "{";
+	
+	var sanitized_list = cleanup_empty_elements(added_list);
+
+	for(var i=0;i<sanitized_list.length;i++)
+		data_formatted += "\""+target_template+i+"\":\""+sanitized_list[i]+"\""+ ((i < sanitized_list.length - 1) ? ", " : "");
+	
+	download("export_targets.json", data_formatted+"}");
 }
 
 $(document).mousemove(function(e){
@@ -155,22 +159,25 @@ $(document).keypress(function(e){
 			case 'q': if(!plugin_enabled) return; next_iteration =  current_selection = current_selecion_undo; break;
 			case 'c': 
 				if(!plugin_enabled) return;
-				// ADD This ID/element
+				
 				if(!containsJObj(added_list, current_selection)){
-					added_list.push(current_selection);
-					added_list_length++;
+					
+					$("."+highlight_class).each(function(index){
+						added_list.push($(this));
+						added_list_length++;
+					});
 					current_selection.addClass(highlight_class_added);
+					
 				} 
 				break;
 			case 'd': 
 				if(!plugin_enabled) return;
 				// REMOVE This ID/element
-				if(containsJObj(added_list, current_selection)){
-					removeFromArray(added_list, current_selection);
-					added_list_length--;
-					if(added_list_length<0) added_list_length = 0;
-					current_selection.removeClass(highlight_class_added);
-				} 
+				removeFromArray(added_list, current_selection);
+				added_list_length--;
+				if(added_list_length<0) added_list_length = 0;
+				current_selection.removeClass(highlight_class_added);
+				
 				break;
 			case 'h': if(!plugin_enabled) return; $("#"+highlight_hover).hide(); highlight_hover_visible = false; break;
 			case 'j': if(!plugin_enabled) return; $("#"+highlight_hover).show(); highlight_hover_visible = true; break;
@@ -252,4 +259,9 @@ $("*").not(elements_ignore).mouseenter(function(e){
 $("*").not(elements_ignore).mouseleave(function(){
 	if(allow_mouse && plugin_enabled)
 		select_element(null, $(this), false);
+
+$("#"+highlight_hover).mouseover(function(){
+	$(this).hide();
+});
+
 });
