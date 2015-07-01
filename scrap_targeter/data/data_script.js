@@ -111,8 +111,9 @@ function cleanup_empty_elements(added_list){
 		if(added_list[i].attr("class")==="" && added_list[i].attr("id")===undefined)
 			element_target += added_list[i].prop("tagName");	
 		else{
-			if(has_id){ element_target += "#"+added_list[i].attr("id").split(/\s+/).join(", #"); }
-			if(has_class && !has_id) element_target += "."+added_list[i].attr("class").split(/\s+/).join(", .");
+			if(has_class) element_target += "."+added_list[i].attr("class").split(/\s+/).join(", .");
+			if(has_class && has_id) element_target+=", ";
+			if(has_id) element_target += "#"+added_list[i].attr("id").split(/\s+/).join(", #");
 		}
 
 		new_list.push(element_target);
